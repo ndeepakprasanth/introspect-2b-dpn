@@ -1,6 +1,10 @@
 replicaCount: 1
 image:
+<<<<<<< HEAD
   repository: "REPLACE_WITH_ECR_REPO"
+=======
+  repository: "946248011760.dkr.ecr.us-east-1.amazonaws.com/introspect-sample-service"
+>>>>>>> 4dbdecf (feat: add sample-service app and Helm chart)
   tag: "latest"
   pullPolicy: IfNotPresent
 service:
