@@ -1,0 +1,52 @@
+name: CI/CD - build, push to ECR, deploy to EKS
+
+on:
+  push:
+    paths:
+      - 'app/services/sample-service/**'
+    branches: [ 'main' ]
+  workflow_dispatch: {}
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag & push Docker image
+        env:
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          REPOSITORY: introspect-sample-service
+        run: |
+          docker build -t $REPOSITORY:latest app/services/sample-service
+          docker tag $REPOSITORY:latest $ECR_REGISTRY/$REPOSITORY:latest
+          aws ecr describe-repositories --repository-names "$REPOSITORY" || aws ecr create-repository --repository-name "$REPOSITORY"
+          docker push $ECR_REGISTRY/$REPOSITORY:latest
+
+      - name: Setup kubectl & aws-iam-authenticator
+        run: |
+          curl -Lo kubectl https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
+
+      - name: Deploy with Helm
+        env:
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+        run: |
+          helm upgrade --install sample-service app/services/sample-service --set image.repository=$ECR_REGISTRY/introspect-sample-service --set image.tag=latest --namespace default
