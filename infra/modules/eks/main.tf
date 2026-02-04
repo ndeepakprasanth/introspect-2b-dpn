@@ -48,6 +48,13 @@ resource "aws_eks_cluster" "this" {
     subnet_ids = var.subnet_ids
   }
 
+  # Prevent transient provider default changes from forcing a costly replacement by
+  # ignoring changes to the bootstrap_self_managed_addons attribute which can
+  # differ across provider versions.
+  lifecycle {
+    ignore_changes = [bootstrap_self_managed_addons]
+  }
+
   depends_on = [aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy]
 }
 
@@ -59,5 +66,10 @@ resource "aws_eks_fargate_profile" "default" {
 
   selector {
     namespace = "default"
+  }
+
+  # Ensure core system pods (kube-system) are scheduled on Fargate
+  selector {
+    namespace = "kube-system"
   }
 } 

@@ -1,21 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sample-service
+  name: {{ .Release.Name }}-sample-service
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name | default "sample-service" }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: sample-service
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: sample-service
+        app.kubernetes.io/name: {{ .Chart.Name | default "sample-service" }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      serviceAccountName: {{- if .Values.serviceAccount.name -}}{{ .Values.serviceAccount.name }}{{- else -}}{{ .Release.Name }}-sample-service{{- end }}
       containers:
         - name: sample-service
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: {{ .Values.service.port }}
-          resources:
-            {}
+            - containerPort: 8080
+          env:
+            - name: BEDROCK_MODEL_ID
+              value: "{{ .Values.bedrock.modelId }}"
+            - name: BEDROCK_AUTH_MODE
+              value: "{{ .Values.bedrock.authMode }}"
+            - name: AWS_REGION
+              value: "{{ default "us-east-1" .Values.bedrock.region }}"
+          resources: {}
