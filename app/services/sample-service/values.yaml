@@ -1,0 +1,21 @@
+replicaCount: 1
+image:
+  repository: "946248011760.dkr.ecr.us-east-1.amazonaws.com/introspect-sample-service"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 8080
+resources: {}
+
+# ServiceAccount configuration - set annotations to configure IRSA role annotation
+serviceAccount:
+  create: true
+  # If name is empty, a default will be generated using the release name
+  name: ""
+  annotations: {}
+
+# Bedrock integration settings - optional values injected into the pod as env vars
+bedrock:
+  modelId: ""     # set to your Bedrock model id when deploying
+  authMode: "auto" # one of: auto|profile|role

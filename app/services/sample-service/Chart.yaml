@@ -1,0 +1,5 @@
+apiVersion: v2
+name: sample-service
+description: "Sample service used in Introspect 2B labs"
+version: 0.1.0
+appVersion: "0.1.0"
