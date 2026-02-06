@@ -30,8 +30,8 @@ resource "aws_iam_role" "bedrock_sa_role" {
 // You can scope this tighter by using model ARNs when available.
 data "aws_iam_policy_document" "bedrock_policy_doc" {
   statement {
-    sid     = "AllowBedrockInvoke"
-    effect  = "Allow"
+    sid    = "AllowBedrockInvoke"
+    effect = "Allow"
 
     actions = [
       "bedrock:InvokeModel",

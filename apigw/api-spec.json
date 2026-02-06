@@ -1,0 +1,89 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Introspect Claims API",
+    "description": "GenAI-enabled Claim Status API with Amazon Bedrock integration",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/claims/{id}": {
+      "get": {
+        "summary": "Get claim status",
+        "description": "Returns claim status information from DynamoDB",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string" },
+                    "policyNumber": { "type": "string" },
+                    "claimant": { "type": "string" },
+                    "amount": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Claim not found"
+          }
+        }
+      }
+    },
+    "/claims/{id}/summarize": {
+      "post": {
+        "summary": "Summarize claim notes",
+        "description": "Reads claim notes from S3 and invokes Amazon Bedrock to generate summaries",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "claimId": { "type": "string" },
+                    "notesCount": { "type": "integer" },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "overall_summary": { "type": "string" },
+                        "customer_summary": { "type": "string" },
+                        "adjuster_summary": { "type": "string" },
+                        "recommended_next_step": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

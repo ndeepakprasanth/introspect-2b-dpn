@@ -1,0 +1,33 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - REPO_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/introspect-sample-service
+      - IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:-latest}
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - pip install -r app/services/sample-service/requirements.txt
+  build:
+    commands:
+      - echo Running tests...
+      - cd app/services/sample-service && pytest -q && cd ../..
+      - echo Building Docker image...
+      - docker build -t $REPO_URI:$IMAGE_TAG app/services/sample-service
+      - docker tag $REPO_URI:$IMAGE_TAG $REPO_URI:latest
+  post_build:
+    commands:
+      - echo Pushing Docker image...
+      - docker push $REPO_URI:$IMAGE_TAG
+      - docker push $REPO_URI:latest
+      - echo Image pushed - Inspector will automatically scan
+      - echo Updating kubeconfig...
+      - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+      - echo Deploying to EKS...
+      - helm upgrade --install sample-service app/services/sample-service -n default --set image.repository=$REPO_URI --set image.tag=$IMAGE_TAG --wait
+artifacts:
+  files:
+    - '**/*'

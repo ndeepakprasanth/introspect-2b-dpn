@@ -21,16 +21,16 @@ variable "oidc_provider_arn" {
 }
 
 variable "policy_name" {
-  type        = string
-  default     = "bedrock-invoke-policy"
+  type    = string
+  default = "bedrock-invoke-policy"
 }
 
 variable "role_name" {
-  type        = string
-  default     = "sample-service-bedrock-role"
+  type    = string
+  default = "sample-service-bedrock-role"
 }
 
 variable "tags" {
-  type        = map(string)
-  default     = {}
+  type    = map(string)
+  default = {}
 }
