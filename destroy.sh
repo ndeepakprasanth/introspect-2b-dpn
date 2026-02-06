@@ -51,20 +51,21 @@ echo "=== Step 3: Delete S3 State Bucket (Optional) ==="
 if [[ -n "$TF_STATE_BUCKET" ]]; then
   read -p "Delete S3 state bucket $TF_STATE_BUCKET? (yes/no): " delete_bucket
   if [[ "$delete_bucket" == "yes" ]]; then
-    aws s3 rm s3://$TF_STATE_BUCKET --recursive --profile $AWS_PROFILE
-    aws s3 rb s3://$TF_STATE_BUCKET --profile $AWS_PROFILE
-    echo "✅ S3 state bucket deleted"
+    echo "Attempting to delete S3 bucket..."
+    aws s3 rm s3://$TF_STATE_BUCKET --recursive --profile $AWS_PROFILE 2>/dev/null || echo "⚠️  Could not empty bucket (may not exist or no permissions)"
+    aws s3 rb s3://$TF_STATE_BUCKET --profile $AWS_PROFILE 2>/dev/null && echo "✅ S3 state bucket deleted" || echo "⚠️  Could not delete bucket (may not exist or no permissions)"
   else
     echo "⏭️  S3 state bucket kept"
   fi
+else
+  echo "⏭️  No state bucket specified, skipping"
 fi
 
 echo ""
 echo "=== Step 4: Delete DynamoDB Lock Table (Optional) ==="
 read -p "Delete DynamoDB lock table 'terraform-locks'? (yes/no): " delete_table
 if [[ "$delete_table" == "yes" ]]; then
-  aws dynamodb delete-table --table-name terraform-locks --region $AWS_REGION --profile $AWS_PROFILE 2>/dev/null || echo "Table not found or already deleted"
-  echo "✅ DynamoDB lock table deleted"
+  aws dynamodb delete-table --table-name terraform-locks --region $AWS_REGION --profile $AWS_PROFILE 2>/dev/null && echo "✅ DynamoDB lock table deleted" || echo "⚠️  Table not found or already deleted"
 else
   echo "⏭️  DynamoDB lock table kept"
 fi
