@@ -12,15 +12,12 @@ A production-ready, cloud-native application demonstrating GenAI integration on 
 # 1. Configure AWS
 aws configure
 
-# 2. Create S3 bucket for Terraform state
-BUCKET_NAME="my-introspect-tf-state-$(date +%s)"
-aws s3 mb s3://$BUCKET_NAME --region us-east-1
-
-# 3. Deploy everything
-TF_STATE_BUCKET=$BUCKET_NAME ./deploy-and-test.sh
+# 2. Deploy everything (includes pre-flight checks)
+TF_STATE_BUCKET=my-introspect-tf-state-$(date +%s) ./deploy-and-test.sh
 ```
 
 **That's it!** The script will:
+- Check for conflicting resources and required tools
 - Create all AWS infrastructure (VPC, EKS, API Gateway, etc.)
 - Build and push Docker image to ECR
 - Deploy application to Kubernetes
@@ -121,24 +118,26 @@ See [SETUP.md](SETUP.md) for installation instructions.
 
 ## 🔧 Usage
 
-### Deploy Infrastructure
-```bash
-./bootstrap-infra.sh
-```
-
 ### Complete Deployment + Testing
 ```bash
-./deploy-and-test.sh
+TF_STATE_BUCKET=my-introspect-tf-state-$(date +%s) ./deploy-and-test.sh
 ```
 
-### Quick Demo (Lab Reset Recovery)
+### Destroy All Resources
 ```bash
-./run-demo.sh
+./destroy.sh
 ```
+This will automatically:
+- Delete Kubernetes resources
+- Delete EKS cluster (node groups, Fargate profiles, cluster)
+- Delete all AWS resources (DynamoDB, ECR, IAM roles, etc.)
+- Run Terraform destroy
+- Clean up S3 buckets
+- Remove security groups
 
-### Test API
+### Force Cleanup (if destroy.sh fails)
 ```bash
-./test-api.sh http://localhost:8080
+./force-cleanup.sh
 ```
 
 ## 🧪 API Examples
@@ -235,16 +234,20 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed breakdown.
 ## 🧹 Cleanup
 
 ```bash
-# Delete Kubernetes resources
-helm uninstall sample-service -n default
-
-# Destroy infrastructure
-cd infra/envs/dev
-terraform destroy -auto-approve
-
-# Delete S3 state bucket (optional)
-aws s3 rb s3://$TF_STATE_BUCKET --force
+# Automated cleanup (recommended)
+./destroy.sh
 ```
+
+The destroy script will automatically:
+- Delete Kubernetes namespaces
+- Delete EKS cluster with all node groups and Fargate profiles
+- Delete DynamoDB tables, ECR repositories, CloudWatch logs
+- Delete IAM roles and policies
+- Run Terraform destroy
+- Delete all S3 buckets (including state bucket)
+- Clean up security groups
+
+**Note:** EKS cluster deletion takes 10-15 minutes.
 
 ## 📝 Lab Requirements
 
@@ -292,7 +295,8 @@ MIT
 
 ---
 
-**Ready to deploy?** → `./deploy-and-test.sh`  
+**Ready to deploy?** → `TF_STATE_BUCKET=my-introspect-tf-state-$(date +%s) ./deploy-and-test.sh`  
+**Need to cleanup?** → `./destroy.sh`  
 **Need help?** → See [SETUP.md](SETUP.md)  
 **Want details?** → See [PROJECT_README.md](PROJECT_README.md)
 
