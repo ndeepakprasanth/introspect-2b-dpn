@@ -77,7 +77,7 @@ done
 
 # Delete IAM Roles
 echo "Deleting IAM roles..."
-for ROLE in introspect-dpn-eks-cluster-role introspect-dpn-eks-fargate-pod-exec introspect-dpn-node-group-role introspect-dpn-bedrock-access; do
+for ROLE in introspect-dpn-eks-cluster-role introspect-dpn-eks-fargate-pod-exec introspect-dpn-node-group-role introspect-dpn-bedrock-access sample-service-bedrock-role introspect-dpn-eks-node-role; do
   for POLICY_ARN in $(aws iam list-attached-role-policies --role-name $ROLE --profile $AWS_PROFILE --query "AttachedPolicies[].PolicyArn" --output text 2>/dev/null); do
     aws iam detach-role-policy --role-name $ROLE --policy-arn $POLICY_ARN --profile $AWS_PROFILE 2>/dev/null || true
   done
@@ -85,6 +85,15 @@ for ROLE in introspect-dpn-eks-cluster-role introspect-dpn-eks-fargate-pod-exec 
     aws iam delete-role-policy --role-name $ROLE --policy-name $POLICY_NAME --profile $AWS_PROFILE 2>/dev/null || true
   done
   aws iam delete-role --role-name $ROLE --profile $AWS_PROFILE 2>/dev/null || true
+done
+
+# Delete IAM Policies
+echo "Deleting IAM policies..."
+for POLICY_NAME in bedrock-invoke-policy; do
+  POLICY_ARN=$(aws iam list-policies --profile $AWS_PROFILE --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text 2>/dev/null)
+  if [[ -n "$POLICY_ARN" ]]; then
+    aws iam delete-policy --policy-arn $POLICY_ARN --profile $AWS_PROFILE 2>/dev/null || true
+  fi
 done
 
 echo ""
