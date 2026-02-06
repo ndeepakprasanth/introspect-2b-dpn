@@ -13,10 +13,82 @@ EKS_CLUSTER_NAME=${EKS_CLUSTER_NAME:-introspect-dpn-eks}
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "=== Introspect-2B Complete Deployment ==="
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║         Introspect-2B Complete Deployment                     ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
 echo "AWS_PROFILE: $AWS_PROFILE"
 echo "AWS_REGION: $AWS_REGION"
 echo "EKS_CLUSTER: $EKS_CLUSTER_NAME"
+echo ""
+
+# Pre-flight checks
+echo "=== Pre-flight Checks ==="
+echo "Checking for existing resources..."
+
+ERRORS=0
+
+# Check for existing EKS cluster
+if aws eks describe-cluster --name "$EKS_CLUSTER_NAME" --region "$AWS_REGION" --profile "$AWS_PROFILE" &>/dev/null; then
+  echo "❌ EKS cluster '$EKS_CLUSTER_NAME' already exists"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# Check for existing DynamoDB table
+if aws dynamodb describe-table --table-name introspect-claims --region "$AWS_REGION" --profile "$AWS_PROFILE" &>/dev/null; then
+  echo "❌ DynamoDB table 'introspect-claims' already exists"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# Check for existing ECR repository
+if aws ecr describe-repositories --repository-names introspect-sample-service --region "$AWS_REGION" --profile "$AWS_PROFILE" &>/dev/null; then
+  echo "❌ ECR repository 'introspect-sample-service' already exists"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# Check for existing IAM roles
+for ROLE in introspect-dpn-eks-cluster-role introspect-dpn-eks-fargate-pod-exec introspect-dpn-node-group-role; do
+  if aws iam get-role --role-name "$ROLE" --profile "$AWS_PROFILE" &>/dev/null; then
+    echo "❌ IAM role '$ROLE' already exists"
+    ERRORS=$((ERRORS + 1))
+    break
+  fi
+done
+
+# Check for existing NLB
+if aws elbv2 describe-load-balancers --region "$AWS_REGION" --profile "$AWS_PROFILE" --query "LoadBalancers[?LoadBalancerName=='introspect-nlb']" --output text 2>/dev/null | grep -q .; then
+  echo "❌ Load balancer 'introspect-nlb' already exists"
+  ERRORS=$((ERRORS + 1))
+fi
+
+if [[ $ERRORS -gt 0 ]]; then
+  echo ""
+  echo "⚠️  Found $ERRORS existing resource(s) that will conflict with deployment."
+  echo ""
+  echo "Run './destroy.sh' to clean up existing resources, then try again."
+  echo ""
+  exit 1
+fi
+
+echo "✅ No conflicting resources found"
+echo ""
+
+# Check required tools
+echo "=== Checking Required Tools ==="
+for CMD in aws terraform docker kubectl helm jq; do
+  if ! command -v $CMD &>/dev/null; then
+    echo "❌ $CMD is not installed"
+    ERRORS=$((ERRORS + 1))
+  else
+    echo "✅ $CMD"
+  fi
+done
+
+if [[ $ERRORS -gt 0 ]]; then
+  echo ""
+  echo "❌ Missing required tools. Please install them and try again."
+  exit 1
+fi
 echo ""
 
 # Step 1: Bootstrap infrastructure
