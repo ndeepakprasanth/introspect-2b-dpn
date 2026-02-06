@@ -31,20 +31,28 @@ echo "=== Step 2: Destroy Terraform Infrastructure ==="
 cd infra/envs/dev
 
 if [[ -z "$TF_STATE_BUCKET" ]]; then
-  echo "⚠️  TF_STATE_BUCKET not set. Trying to detect from terraform output..."
-  TF_STATE_BUCKET=$(terraform output -raw s3_notes_bucket 2>/dev/null | cut -d'-' -f1-4 || echo "")
+  echo "⚠️  TF_STATE_BUCKET not set."
+  read -p "Enter your Terraform state bucket name (or press Enter to skip): " TF_STATE_BUCKET
 fi
 
-if [[ -n "$TF_STATE_BUCKET" ]]; then
-  terraform init -backend-config="bucket=$TF_STATE_BUCKET" \
+if [[ -n "$TF_STATE_BUCKET" && "$TF_STATE_BUCKET" != "your-bucket-name" ]]; then
+  echo "Initializing Terraform with backend: $TF_STATE_BUCKET"
+  terraform init -reconfigure \
+    -backend-config="bucket=$TF_STATE_BUCKET" \
     -backend-config="key=instrospect2/dev/terraform.tfstate" \
     -backend-config="region=$AWS_REGION" \
-    -backend-config="dynamodb_table=terraform-locks" || true
+    -backend-config="dynamodb_table=terraform-locks" 2>&1 | grep -v "^$" || true
+  
+  echo "Running terraform destroy..."
+  terraform destroy -auto-approve
+else
+  echo "⚠️  No valid state bucket. Attempting local destroy..."
+  terraform init -reconfigure 2>&1 | grep -v "^$" || true
+  terraform destroy -auto-approve 2>&1 || echo "⚠️  Destroy failed or no resources to destroy"
 fi
 
-terraform destroy -auto-approve
 cd ../../..
-echo "✅ Infrastructure destroyed"
+echo "✅ Infrastructure destroy attempted"
 
 echo ""
 echo "=== Step 3: Delete S3 State Bucket (Optional) ==="
