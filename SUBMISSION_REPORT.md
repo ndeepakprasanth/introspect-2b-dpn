@@ -2,7 +2,7 @@
 
 ## Introspect-2B: GenAI-Enabled Claim Status API
 
-**Student**: Deepak Prasanth  
+**Student**: Deepak Prasanth N  
 **Repository**: https://github.com/ndeepakprasanth/introspect-2b-dpn  
 **Date**: February 6, 2026  
 **Status**: ✅ Complete and Functional
@@ -698,7 +698,7 @@ Place screenshots in `screenshots/` directory:
 
 ---
 
-**Submitted By**: Deepak Prasanth  
+**Submitted By**: Deepak Prasanth N  
 **Date**: February 6, 2026  
 **Project**: Introspect-2B GenAI-Enabled Claim Status API  
 **Status**: Ready for Evaluation
