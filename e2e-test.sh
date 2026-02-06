@@ -10,8 +10,9 @@ echo "╚═══════════════════════�
 echo ""
 
 # Configuration
+AWS_PROFILE=${AWS_PROFILE:-Deepak}
 AWS_REGION=${AWS_REGION:-us-east-1}
-AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "")
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --profile $AWS_PROFILE --query Account --output text 2>/dev/null || echo "")
 
 if [[ -z "$AWS_ACCOUNT_ID" ]]; then
   echo "❌ AWS credentials not configured. Run: aws configure"
@@ -30,8 +31,8 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 BUCKET_NAME="introspect-tf-state-${AWS_ACCOUNT_ID}-$(date +%s)"
 echo "Creating bucket: $BUCKET_NAME"
 
-aws s3 mb s3://$BUCKET_NAME --region $AWS_REGION
-aws s3api put-bucket-versioning --bucket $BUCKET_NAME --versioning-configuration Status=Enabled
+aws s3 mb s3://$BUCKET_NAME --region $AWS_REGION --profile $AWS_PROFILE
+aws s3api put-bucket-versioning --bucket $BUCKET_NAME --versioning-configuration Status=Enabled --profile $AWS_PROFILE
 
 echo "✅ S3 bucket created: $BUCKET_NAME"
 echo "⚠️  SAVE THIS: export TF_STATE_BUCKET=$BUCKET_NAME"
@@ -43,6 +44,7 @@ echo "Step 2: Deploy Infrastructure (10-15 minutes)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 export TF_STATE_BUCKET=$BUCKET_NAME
+export AWS_PROFILE=$AWS_PROFILE
 ./deploy-and-test.sh
 
 echo ""

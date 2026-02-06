@@ -4,7 +4,7 @@ set -euo pipefail
 # deploy-and-test.sh - Complete deployment and testing script
 # This script deploys the entire infrastructure and validates functionality
 
-AWS_PROFILE=${AWS_PROFILE:-default}
+AWS_PROFILE=${AWS_PROFILE:-Deepak}
 AWS_REGION=${AWS_REGION:-us-east-1}
 TF_STATE_BUCKET=${TF_STATE_BUCKET:-}
 TF_STATE_KEY=${TF_STATE_KEY:-instrospect2/dev/terraform.tfstate}
