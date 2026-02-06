@@ -33,20 +33,22 @@ module "dynamodb_claims" {
   }
 }
 
-module "pipeline" {
-  source          = "../../modules/pipeline"
-  project_name    = "introspect-sample-build"
-  pipeline_name   = "introspect-sample-pipeline"
-  repository      = "ndeepakprasanth/introspect-2b-dpn"
-  branch          = "main"
-  connection_arn  = var.code_connection_arn
-  artifact_bucket = aws_s3_bucket.pipeline_artifacts.bucket
-  buildspec       = "${path.root}/../../pipelines/buildspec.yml"
-  region          = var.region
-  tags = {
-    Environment = "dev"
-  }
-}
+# CodePipeline (commented out - requires CodeStar connection setup)
+# Uncomment after creating GitHub connection in AWS Console
+# module "pipeline" {
+#   source = "../../modules/pipeline"
+#   project_name = "introspect-sample-build"
+#   pipeline_name = "introspect-sample-pipeline"
+#   repository = "ndeepakprasanth/introspect-2b-dpn"
+#   branch = "main"
+#   connection_arn = var.code_connection_arn
+#   artifact_bucket = aws_s3_bucket.pipeline_artifacts.bucket
+#   buildspec = "${path.root}/../../pipelines/buildspec.yml"
+#   region = var.region
+#   tags = {
+#     Environment = "dev"
+#   }
+# }
 
 resource "random_id" "suffix" {
   byte_length = 2
@@ -100,11 +102,11 @@ module "bedrock_iam" {
 module "observability" {
   source       = "../../modules/observability"
   api_name     = "introspect-claims-api"
-  cluster_name = module.eks.cluster_name != null ? module.eks.cluster_name : "introspect-dpn-eks"
+  cluster_name = module.eks.cluster_name
   region       = var.region
 }
 
-# Security Hub and Inspector
+# Security Hub and Inspector (commented out - requires special permissions)
 module "security" {
   source = "../../modules/security"
   region = var.region
