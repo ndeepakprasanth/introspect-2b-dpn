@@ -84,23 +84,16 @@ resource "aws_s3_bucket" "pipeline_artifacts" {
 }
 
 # IRSA for Bedrock access
-data "aws_eks_cluster" "cluster" {
-  name = module.eks.cluster_name != null ? module.eks.cluster_name : "introspect-dpn-eks"
-}
-
-data "aws_iam_openid_connect_provider" "eks_oidc" {
-  url = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
-}
-
 module "bedrock_iam" {
   source            = "../../modules/iam"
   sa_namespace      = "default"
   sa_name           = "sample-service"
-  oidc_provider_url = data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer
-  oidc_provider_arn = data.aws_iam_openid_connect_provider.eks_oidc.arn
+  oidc_provider_url = module.eks.oidc_provider_url
+  oidc_provider_arn = module.eks.oidc_provider_arn
   tags = {
     Environment = "dev"
   }
+  depends_on = [module.eks]
 }
 
 # Observability

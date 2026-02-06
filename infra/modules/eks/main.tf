@@ -48,14 +48,22 @@ resource "aws_eks_cluster" "this" {
     subnet_ids = var.subnet_ids
   }
 
-  # Prevent transient provider default changes from forcing a costly replacement by
-  # ignoring changes to the bootstrap_self_managed_addons attribute which can
-  # differ across provider versions.
   lifecycle {
     ignore_changes = [bootstrap_self_managed_addons]
   }
 
   depends_on = [aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy]
+}
+
+# Enable OIDC provider for IRSA
+data "tls_certificate" "eks" {
+  url = aws_eks_cluster.this.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
 
 resource "aws_eks_fargate_profile" "default" {
