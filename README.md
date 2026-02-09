@@ -13,7 +13,7 @@ A production-ready, cloud-native application demonstrating GenAI integration on 
 aws configure
 
 # 2. Deploy everything (includes pre-flight checks)
-TF_STATE_BUCKET=my-introspect-tf-state-$(date +%s) ./deploy-and-test.sh
+ALLOW_EXISTING=true ./deploy-and-test.sh
 ```
 
 **That's it!** The script will:

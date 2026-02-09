@@ -9,6 +9,45 @@ TF_STATE_KEY=${TF_STATE_KEY:-instrospect2/dev/terraform.tfstate}
 DYNAMODB_TABLE=${DYNAMODB_TABLE:-terraform-locks}
 AWS_REGION=${AWS_REGION:-us-east-1}
 
+ensure_state_bucket() {
+  local bucket="$TF_STATE_BUCKET"
+  local region="$AWS_REGION"
+  local profile="$AWS_PROFILE"
+
+  # If the bucket already exists, do nothing.
+  if aws s3api head-bucket --bucket "$bucket" --profile "$profile" 2>/dev/null; then
+    echo "State bucket exists: $bucket"
+    return 0
+  fi
+
+  echo "Creating S3 bucket: $bucket in region $region"
+  if [[ "$region" == "us-east-1" ]]; then
+    aws s3api create-bucket \
+      --bucket "$bucket" \
+      --region "$region" \
+      --profile "$profile"
+  else
+    aws s3api create-bucket \
+      --bucket "$bucket" \
+      --region "$region" \
+      --create-bucket-configuration LocationConstraint="$region" \
+      --profile "$profile"
+  fi
+
+  echo "Enabling versioning on bucket"
+echo "Waiting for Terraform state bucket to be globally visible..."
+for i in {1..10}; do
+  if aws s3api head-bucket --bucket "$TF_STATE_BUCKET" --profile "$AWS_PROFILE" 2>/dev/null; then
+    echo "Bucket visible."; break
+  fi
+  echo "  not yet visible, retrying..."; sleep 3
+done
+  aws s3api put-bucket-versioning \
+    --bucket "$bucket" \
+    --versioning-configuration Status=Enabled \
+    --profile "$profile"
+}
+
 usage() {
   cat <<EOF
 Usage: TF_STATE_BUCKET=my-bucket [TF_STATE_KEY=path/to/state] [AWS_REGION=region] ./bootstrap-infra.sh
@@ -16,7 +55,7 @@ Usage: TF_STATE_BUCKET=my-bucket [TF_STATE_KEY=path/to/state] [AWS_REGION=region
 This script will:
 - Create the S3 bucket (if missing) and enable versioning
 - Create the DynamoDB table for locking (if missing)
-- Run terraform init with backend configured and terraform apply in infra/envs/dev
+- Run terraform init -migrate-state -input=false || terraform init -reconfigure -input=false with backend configured and terraform apply in infra/envs/dev
 
 Notes:
 - Requires AWS CLI and Terraform installed and configured with appropriate credentials.
@@ -76,10 +115,10 @@ else
   echo "DynamoDB table already exists: $DYNAMODB_TABLE"
 fi
 
-# Run terraform init & apply in infra/envs/dev
+# Run terraform init -migrate-state -input=false || terraform init -reconfigure -input=false & apply in infra/envs/dev
 pushd infra/envs/dev >/dev/null
 echo "Initializing terraform with S3 backend..."
-terraform init -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="key=$TF_STATE_KEY" -backend-config="region=$AWS_REGION" -backend-config="dynamodb_table=$DYNAMODB_TABLE"
+terraform init -migrate-state -input=false || terraform init -reconfigure -input=false -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="key=$TF_STATE_KEY" -backend-config="region=$AWS_REGION" -backend-config="dynamodb_table=$DYNAMODB_TABLE"
 
 echo "Planning and applying Terraform (infra/envs/dev)..."
 terraform apply -auto-approve
