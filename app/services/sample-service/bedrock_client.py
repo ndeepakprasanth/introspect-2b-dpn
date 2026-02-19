@@ -62,16 +62,61 @@ def summarize_notes(notes):
 
     combined = "\n".join([n.get('text', '') for n in notes])
 
-    prompt = (
-        "You are an insurance claims assistant. Given the following claim notes, produce a JSON object with the "
-        "following fields: overall_summary, customer_summary, adjuster_summary, recommended_next_step. "
-        "Keep the summaries concise (1-3 sentences). Return only valid JSON. Notes: \n" + combined
+    # For Claude models, use proper message format
+    system_prompt = (
+        "You are an insurance claims assistant. "
+        "Given claim notes, produce a JSON object with these exact fields: "
+        "overall_summary, customer_summary, adjuster_summary, recommended_next_step. "
+        "Keep summaries concise (1-3 sentences). Return ONLY valid JSON, no extra text."
     )
+    
+    user_message = f"Summarize these claim notes:\n\n{combined}"
 
-    payload = prompt.encode('utf-8')
+    # Build the request body based on the model
+    if 'claude' in model_id.lower():
+        # Claude models use messages format
+        body = {
+            "anthropic_version": "bedrock-2023-06-01",
+            "max_tokens": 1024,
+            "system": system_prompt,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": user_message
+                }
+            ]
+        }
+        payload = json.dumps(body).encode('utf-8')
+    elif 'nova' in model_id.lower():
+        # Amazon Nova models use messages format with content as array
+        body = {
+            "max_tokens": 1024,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"text": system_prompt + "\n\n" + user_message}]
+                }
+            ]
+        }
+        payload = json.dumps(body).encode('utf-8')
+    elif 'titan' in model_id.lower():
+        # Titan models use inputText format (now EOL, but keep for compatibility)
+        body = {
+            "inputText": system_prompt + "\n\n" + user_message,
+            "textGenerationConfig": {
+                "maxTokenCount": 1024,
+                "temperature": 0.7,
+                "topP": 0.9
+            }
+        }
+        payload = json.dumps(body).encode('utf-8')
+    else:
+        # Fallback for other models
+        prompt = system_prompt + "\n\n" + user_message
+        payload = prompt.encode('utf-8')
 
     try:
-        response = client.invoke_model(modelId=model_id, contentType='text/plain', accept='application/json', body=payload)
+        response = client.invoke_model(modelId=model_id, contentType='application/json', accept='application/json', body=payload)
         # Response may contain body as bytes-like
         body = response.get('body')
         if isinstance(body, (bytes, bytearray)):
@@ -83,28 +128,46 @@ def summarize_notes(notes):
             except Exception:
                 text = str(body)
 
-        # The model should return JSON; guard against extra text
+        # Parse the response based on model
         try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            # Try to find JSON substring
-            start = text.find('{')
-            end = text.rfind('}')
-            if start != -1 and end != -1 and end > start:
-                parsed = json.loads(text[start:end+1])
+            parsed_resp = json.loads(text)
+            # Claude returns {"content": [...], "stop_reason": "..."}
+            if 'content' in parsed_resp and isinstance(parsed_resp['content'], list):
+                content = parsed_resp['content'][0].get('text', text)
+            # Titan and Nova return {"results": [{"outputText": "..."}]}
+            elif 'results' in parsed_resp and isinstance(parsed_resp['results'], list):
+                content = parsed_resp['results'][0].get('outputText', text)
+            # Nova Lite might return the output directly
+            elif 'output' in parsed_resp and isinstance(parsed_resp['output'], dict):
+                content = parsed_resp['output'].get('text', text)
             else:
-                raise
+                content = text
+            
+            # Extract JSON from content
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError:
+                # Try to find JSON substring
+                start = content.find('{')
+                end = content.rfind('}')
+                if start != -1 and end != -1 and end > start:
+                    parsed = json.loads(content[start:end+1])
+                else:
+                    raise
+        except json.JSONDecodeError as e:
+            logger.error(f'Failed to parse Bedrock response as JSON: {text[:200]}')
+            raise
 
         # Ensure required keys exist
         keys = ['overall_summary', 'customer_summary', 'adjuster_summary', 'recommended_next_step']
         return {k: parsed.get(k, '') for k in keys}
 
-    except Exception:
-        logger.exception('Bedrock summarize failed')
+    except Exception as e:
+        logger.exception(f'Bedrock summarize failed: {e}')
         # Fallback to a safe default
         return {
-            'overall_summary': 'Bedrock summarization failed.',
-            'customer_summary': 'Bedrock summarization failed.',
-            'adjuster_summary': 'Bedrock summarization failed.',
-            'recommended_next_step': 'Review notes manually.'
+            'overall_summary': 'Summarization service temporarily unavailable.',
+            'customer_summary': 'We are processing your claim. Thank you for your patience.',
+            'adjuster_summary': 'Review claim notes manually for detailed assessment.',
+            'recommended_next_step': 'Follow up within 2 business days.'
         }

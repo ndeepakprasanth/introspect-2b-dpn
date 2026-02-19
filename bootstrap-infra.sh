@@ -115,10 +115,16 @@ else
   echo "DynamoDB table already exists: $DYNAMODB_TABLE"
 fi
 
-# Run terraform init -migrate-state -input=false || terraform init -reconfigure -input=false & apply in infra/envs/dev
+# Run terraform init with S3 backend configured and reconfigure mode to avoid migration prompts
 pushd infra/envs/dev >/dev/null
 echo "Initializing terraform with S3 backend..."
-terraform init -migrate-state -input=false || terraform init -reconfigure -input=false -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="key=$TF_STATE_KEY" -backend-config="region=$AWS_REGION" -backend-config="dynamodb_table=$DYNAMODB_TABLE"
+# Use -reconfigure to accept new backend config without prompting for migration
+terraform init \
+  -reconfigure \
+  -lock=false \
+  -backend-config="bucket=$TF_STATE_BUCKET" \
+  -backend-config="key=$TF_STATE_KEY" \
+  -backend-config="region=$AWS_REGION"
 
 echo "Planning and applying Terraform (infra/envs/dev)..."
 terraform apply -auto-approve

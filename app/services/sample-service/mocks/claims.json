@@ -1,0 +1,7 @@
+[
+  {"id": "1001", "status": "OPEN", "policyNumber": "PN-0001", "claimant": "Alice Smith", "amount": 1200.50},
+  {"id": "1002", "status": "PENDING", "policyNumber": "PN-0002", "claimant": "Bob Jones", "amount": 450.00},
+  {"id": "1003", "status": "CLOSED", "policyNumber": "PN-0003", "claimant": "Carol Lee", "amount": 2300.00},
+  {"id": "1004", "status": "OPEN", "policyNumber": "PN-0004", "claimant": "Dan Brown", "amount": 780.25},
+  {"id": "1005", "status": "INVESTIGATING", "policyNumber": "PN-0005", "claimant": "Eve White", "amount": 15000.00}
+]

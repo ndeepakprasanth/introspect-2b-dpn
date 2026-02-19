@@ -89,7 +89,7 @@ resource "aws_s3_bucket" "pipeline_artifacts" {
 module "bedrock_iam" {
   source            = "../../modules/iam"
   sa_namespace      = "default"
-  sa_name           = "sample-service"
+  sa_name           = "sample-service-sample-service"
   oidc_provider_url = module.eks.oidc_provider_url
   oidc_provider_arn = module.eks.oidc_provider_arn
   tags = {

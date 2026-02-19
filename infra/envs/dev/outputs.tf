@@ -18,6 +18,10 @@ output "nlb_dns_name" {
   value = module.nlb.nlb_dns_name
 }
 
+output "nlb_target_group_arn" {
+  value = module.nlb.target_group_arn
+}
+
 output "bedrock_role_arn" {
   value = module.bedrock_iam.role_arn
 }

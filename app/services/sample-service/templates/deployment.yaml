@@ -15,15 +15,17 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name | default "sample-service" }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+{{- with .Values.podLabels }}
+{{ toYaml . | indent 8 }}
+{{- end }}
+{{- with .Values.podAnnotations }}
+      annotations:
+{{ toYaml . | indent 8 }}
+{{- end }}
     spec:
       serviceAccountName: {{ if .Values.serviceAccount.name }}{{ .Values.serviceAccount.name }}{{ else }}{{ .Release.Name }}-sample-service{{ end }}
       nodeSelector:
         kubernetes.io/os: linux
-      tolerations:
-        - key: "eks.amazonaws.com/compute-type"
-          operator: "Equal"
-          value: "ec2"
-          effect: "NoSchedule"
       containers:
         - name: sample-service
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -31,10 +33,16 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: BEDROCK_MODEL_ID
-              value: "{{ .Values.bedrock.modelId }}"
-            - name: BEDROCK_AUTH_MODE
-              value: "{{ .Values.bedrock.authMode }}"
-            - name: AWS_REGION
-              value: "{{ default "us-east-1" .Values.bedrock.region }}"
-          resources: {}
+{{- with .Values.env }}
+{{ toYaml . | indent 12 }}
+{{- end }}
+{{- with .Values.extraVolumeMounts }}
+          volumeMounts:
+{{ toYaml . | indent 12 }}
+{{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+{{- with .Values.extraVolumes }}
+      volumes:
+{{ toYaml . | indent 8 }}
+{{- end }}

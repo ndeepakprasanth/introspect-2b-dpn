@@ -4,7 +4,7 @@ terraform {
     # bucket         = "<provided-at-init>"
     # key            = "instrospect2/dev/terraform.tfstate"
     # region         = "us-east-1"
-    # dynamodb_table = "terraform-locks"
+    # use_lockfile   = true  # Replaces deprecated dynamodb_table parameter
   }
 
   required_providers {

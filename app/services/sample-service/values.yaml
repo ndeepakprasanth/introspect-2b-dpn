@@ -15,7 +15,51 @@ serviceAccount:
   name: ""
   annotations: {}
 
-# Bedrock integration settings - optional values injected into the pod as env vars
+# Bedrock integration settings - env vars injected into the pod
 bedrock:
-  modelId: ""     # set to your Bedrock model id when deploying
-  authMode: "auto" # one of: auto|profile|role
+  enabled: true
+  modelId: "anthropic.claude-3-5-sonnet-20241022"  # Claude 3.5 Sonnet (available in us-east-1, no inference profile needed)
+  authMode: "role"  # Use IAM role (IRSA) instead of profile
+
+env:
+  - name: BEDROCK_MODEL_ID
+    value: "anthropic.claude-3-5-sonnet-20241022"
+  - name: BEDROCK_AUTH_MODE
+    value: "role"
+  - name: AWS_REGION
+    value: "us-east-1"
+  - name: AWS_DEFAULT_REGION
+    value: "us-east-1"
+  - name: MOCKS_PATH
+    value: "/app/mocks"
+  - name: LOG_LEVEL
+    value: "INFO"
+
+# Observability - CloudWatch Logs configuration
+observability:
+  enabled: true
+  cloudwatch:
+    enabled: true
+    logRetention: 30  # days
+
+# Pod labels for CloudWatch and service discovery
+podLabels:
+  app: sample-service
+  environment: dev
+  component: api
+
+# Pod annotations for CloudWatch
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+extraVolumeMounts:
+  - name: mocks
+    mountPath: /app/mocks
+    readOnly: true
+
+extraVolumes:
+  - name: mocks
+    configMap:
+      name: sample-mocks

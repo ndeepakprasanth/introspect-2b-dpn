@@ -77,22 +77,15 @@ kubectl delete configmap sample-mocks -n default --ignore-not-found >/dev/null 2
 # Give the control plane a brief moment to reconcile Service/NLB tear-down
 sleep 5
 
-# Delete EKS Node Groups first
+# Delete EKS Node Groups first (EC2-only setup)
 echo "Deleting EKS node groups..."
 for NG in $(aws eks list-nodegroups --cluster-name introspect-dpn-eks --region "$AWS_REGION" --profile "$AWS_PROFILE" --query 'nodegroups[]' --output text 2>/dev/null); do
   echo "Deleting node group: $NG"
   aws eks delete-nodegroup --cluster-name introspect-dpn-eks --nodegroup-name $NG --region "$AWS_REGION" --profile "$AWS_PROFILE" 2>/dev/null || true
 done
 
-# Delete Fargate Profiles
-echo "Deleting Fargate profiles..."
-for FP in $(aws eks list-fargate-profiles --cluster-name introspect-dpn-eks --region "$AWS_REGION" --profile "$AWS_PROFILE" --query 'fargateProfileNames[]' --output text 2>/dev/null); do
-  echo "Deleting Fargate profile: $FP"
-  aws eks delete-fargate-profile --cluster-name introspect-dpn-eks --fargate-profile-name $FP --region "$AWS_REGION" --profile "$AWS_PROFILE" 2>/dev/null || true
-done
-
-# Wait for node groups and Fargate profiles to delete using AWS CLI waiters
-echo "Waiting for node groups and Fargate profiles to delete (this may take a few minutes)..."
+# Wait for node groups to delete using AWS CLI waiters
+echo "Waiting for node groups to delete (this may take a few minutes)..."
 
 # Wait for each node group to be fully deleted
 for NG in $(aws eks list-nodegroups \
@@ -103,18 +96,6 @@ for NG in $(aws eks list-nodegroups \
   aws eks wait nodegroup-deleted \
     --cluster-name introspect-dpn-eks \
     --nodegroup-name "$NG" \
-    --region "$AWS_REGION" --profile "$AWS_PROFILE" || true
-done
-
-# Wait for each Fargate profile to be fully deleted
-for FP in $(aws eks list-fargate-profiles \
-  --cluster-name introspect-dpn-eks \
-  --region "$AWS_REGION" --profile "$AWS_PROFILE" \
-  --query 'fargateProfileNames[]' --output text 2>/dev/null); do
-  echo "Waiting for Fargate profile to delete: $FP"
-  aws eks wait fargate-profile-deleted \
-    --cluster-name introspect-dpn-eks \
-    --fargate-profile-name "$FP" \
     --region "$AWS_REGION" --profile "$AWS_PROFILE" || true
 done
 

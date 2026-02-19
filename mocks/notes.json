@@ -4,13 +4,17 @@
     {"noteId": "n2","author":"customer","text":"Observed dent after parking lot incident. Requesting estimate."}
   ],
   "1002": [
-    {"noteId": "n3","author":"adjuster2","text":"Investigating water damage in attic. Possible mold."}
+    {"noteId": "n3","author":"adjuster2","text":"Investigating water damage in attic. Possible mold. Scheduled home inspection for next week."}
   ],
   "1003": [
-    {"noteId": "n4","author":"adjuster1","text":"Claim settled and payment issued."}
+    {"noteId": "n4","author":"adjuster1","text":"Claim settled and payment issued. Customer confirmed receipt of funds on deposit account."}
+  ],
+  "1004": [
+    {"noteId": "n7","author":"adjuster3","text":"Property damage from windstorm. Roof inspection shows shingles need replacement."},
+    {"noteId": "n8","author":"customer","text":"Weather-related damage. Waiting for approved repair estimate."}
   ],
   "1005": [
-    {"noteId": "n5","author":"investigator","text":"Large loss reported. Assigning special investigator."},
-    {"noteId": "n6","author":"customer","text":"Waiting for next steps and timeline."}
+    {"noteId": "n5","author":"investigator","text":"Large loss reported. Assigning special investigator. Potential fraud indicators identified."},
+    {"noteId": "n6","author":"customer","text":"Waiting for next steps and timeline. Concerned about timely resolution."}
   ]
 }
